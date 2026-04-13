@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traculator - 极简记账服务</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='favicon.svg') }}">
+    <style>
+        /* CSS Reset and Variables */
+        :root {
+            --bg-color: #f7f9fa;
+            --surface-color: #ffffff;
+            --text-main: #2d3748;
+            --text-secondary: #718096;
+            --border-color: #e2e8f0;
+            --accent-color: #38a169; /* 绿色系主色调 */
+            --accent-hover: #2f855a;
+            --error-color: #e53e3e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        body.no-scroll {
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        h1, h2, h3 {
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-main);
+        }
+
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 16px;
+            transition: border-color 0.2s;
+            background-color: #fff;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--accent-color);
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        button.secondary {
+            background-color: var(--surface-color);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        button.secondary:hover {
+            background-color: var(--bg-color);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .list-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .badge {
+            background-color: var(--bg-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            cursor: pointer;
+            color: var(--text-main);
+            padding: 8px 12px;
+            background-color: var(--bg-color);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            transition: border-color 0.2s;
+        }
+
+        .checkbox-label:active {
+            border-color: var(--accent-color);
+        }
+
+        .checkbox-label input {
+            width: auto;
+            margin-bottom: 0;
+            margin-right: 8px;
+            transform: scale(1.2);
+        }
+
+        #login-section {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Mobile friendly list replacing tables */
+        .list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .settlement-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background-color: var(--bg-color);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .settlement-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .settlement-amount {
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        .record-card {
+            background-color: var(--bg-color);
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .rc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .rc-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .rc-price {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        
+        .rc-meta {
+            font-size: 14px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+        }
+        
+        .rc-repayers {
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: var(--surface-color);
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px dashed var(--border-color);
+        }
+        
+        .rc-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 12px;
+        }
+        
+        .rc-date {
+            font-size: 12px;
+            color: #a0aec0;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 16px;
+            background-color: #fff;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background-color: var(--text-main);
+            color: white;
+            border-radius: 4px;
+            transition: opacity 0.3s;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 2000;
+        }
+
+        /* Mobile UI Additions */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            background: var(--surface-color); width: 90%; max-width: 500px;
+            max-height: 90vh; overflow-y: auto; border-radius: 12px; padding: 24px;
+            position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .modal-close {
+            position: absolute; top: 12px; right: 12px;
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-secondary); width: 36px; height: 36px; border-radius: 18px; display: flex; align-items: center; justify-content: center; z-index: 10; cursor: pointer;
+        }
+        .app-header {
+            display: flex; justify-content: space-between; align-items: center;
+            height: 60px; padding: 0 20px; background: var(--surface-color); border-bottom: 1px solid var(--border-color);
+            position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
+        }
+        .bp-panel {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: var(--bg-color); border-top: 1px solid var(--border-color);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08); z-index: 90;
+            height: 35vh; display: flex; flex-direction: column;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .bp-panel.collapsed {
+            transform: translateY(calc(100% - 46px));
+        }
+        .bp-header {
+            padding: 12px 20px; background: var(--surface-color); border-bottom: 1px solid var(--border-color);
+            font-weight: 600; font-size: 14px; flex-shrink: 0;
+            height: 46px; box-sizing: border-box;
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer;
+        }
+        .bp-header svg {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .bp-panel.collapsed .bp-header svg {
+            transform: rotate(180deg);
+        }
+        .bp-content { padding: 12px 20px; overflow-y: auto; flex: 1; }
+        .fab {
+            position: fixed; right: 20px; bottom: calc(35vh + 20px);
+            width: 56px; height: 56px; border-radius: 28px; background: var(--accent-color); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; z-index: 95; border: none; padding: 0; 
+            transition: transform 0.2s, bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .bp-panel.collapsed ~ .fab {
+            bottom: calc(46px + 20px);
+        }
+        .fab:active { transform: scale(0.95); }
+        .main-scroll-area {
+            padding-top: 60px; /* Header height */
+            padding-bottom: calc(35vh + 20px); /* Bottom panel height */
+            min-height: 100vh;
+        }
+        .rc-tag {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            border: 1px solid var(--border-color);
+            display: inline-block;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<!-- 未登录时的语言切换按钮 -->
+<div id="login-lang-switch" style="position: fixed; top: 12px; right: 20px; z-index: 1001;">
+    <button id="btn-lang-toggle" class="secondary" style="width: auto; padding: 4px 10px; font-size: 12px; border-radius: 15px;" onclick="toggleLanguage()">
+        EN / 中
+    </button>
+</div>
+
+<!-- 登录模块 -->
+<div id="login-section" class="container" style="padding-top: 10vh;">
+    <h1>Traculator</h1>
+    <div class="card">
+        <h2 id="login-title" style="text-align: center;">登录 / 注册</h2>
+        <p id="login-desc" style="text-align: center;">请输入6位数字码以访问账本</p>
+        <input type="text" id="code-input" placeholder="输入6位数字码, 例: 123456" maxlength="6" style="text-align: center; font-size: 18px; letter-spacing: 2px;">
+        <button id="btn-login" onclick="login()">进入账本</button>
+        <p id="login-note" style="text-align: center; margin-top: 16px; font-size: 12px; color: var(--text-secondary);">(如不存在该密码, 将自动创建新账本)</p>
+    </div>
+</div>
+
+<!-- 账本首页模块 -->
+<div id="main-section" class="hidden">
+    <!-- 顶部导航 -->
+    <div class="app-header">
+        <h2 style="margin: 0; font-size: 18px;">Traculator</h2>
+        <button id="btn-settings" class="secondary" style="width: auto; padding: 6px 12px; border-radius: 20px; display: flex; align-items: center;" onclick="openSettingsModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            设置
+        </button>
+    </div>
+
+    <!-- 滚动内容区 -->
+    <div class="container main-scroll-area" style="display: flex; position: relative;">
+        <!-- 时间侧边栏定位区域 -->
+        <div id="timeline-sidebar" style="width: 40px; margin-right: 12px; position: sticky; top: 60px; padding-top: 12px; align-self: flex-start; max-height: calc(85vh - 120px); overflow-y: auto; text-align: center; border-right: 2px solid var(--border-color);">
+            <!-- 动态日期点 -->
+        </div>
+        
+        <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; position: sticky; top: 60px; background-color: var(--bg-color); z-index: 10; padding-top: 12px; padding-bottom: 8px;">
+                <h3 id="records-title" style="margin-left: 4px; margin-bottom: 0; color: var(--text-secondary); font-size: 14px;">账单明细</h3>
+                <input type="text" id="search-keyword" placeholder="搜索账单" oninput="renderRecords()" style="margin-bottom: 0; width: 60%; padding: 6px 12px;">
+            </div>
+            <div id="records-body" class="list-container">
+                <!-- 动态数据 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 固定在底部的结算概览 -->
+    <div class="bp-panel" id="settlement-panel">
+        <div class="bp-header" onclick="document.getElementById('settlement-panel').classList.toggle('collapsed')">
+            <div>
+                <span id="settlement-title">结算结果</span> <span id="settlement-middleman-name" style="color: var(--accent-color);"></span> <span id="settlement-hint" style="font-size: 12px; font-weight: normal; color: var(--text-secondary); margin-left: 6px;">(正数付给，负数收回)</span>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+        </div>
+        <div class="bp-content">
+            <div id="settlement-body" class="list-container">
+                <!-- 动态数据 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 浮动按钮 -->
+    <button class="fab" onclick="openRecordModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
+</div>
+
+<!-- 弹窗：设置/成员管理 -->
+<div id="settings-modal" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeSettingsModal()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <h3 id="settings-title" style="margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-right: 28px;">设置与管理</h3>
+        
+        <div style="margin-bottom: 20px;">
+            <p id="label-lang" style="font-weight: 600; color: var(--text-main); margin-bottom: 8px;">语言 / Language</p>
+            <select id="lang-select" onchange="switchLanguage()" style="margin-bottom: 0;">
+                <option value="zh">中文 (Chinese)</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <p id="label-add-member" style="font-weight: 600; color: var(--text-main); margin-bottom: 8px;">添加成员</p>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="new-member-name" placeholder="成员姓名" style="margin-bottom: 0;">
+                <button id="btn-add-member" onclick="addMember()" style="width: 80px;">添加</button>
+            </div>
+            <div id="members-list" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
+                <!-- 成员标签 -->
+            </div>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <p id="label-set-middleman" style="font-weight: 600; color: var(--text-main); margin-bottom: 8px;">设置中间商 <span style="font-weight:normal; font-size:12px; color:var(--text-secondary);">(当前: <span id="current-middleman">无</span>)</span></p>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <select id="middleman-select" style="margin-bottom: 0;">
+                </select>
+                <button id="btn-set-middleman" class="secondary" onclick="setMiddleman()" style="width: 80px;">设置</button>
+            </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-color); padding-top: 16px; display: flex; justify-content: space-between;">
+            <button id="btn-delete-ledger" class="secondary" style="width: auto; padding: 8px 16px; border-color: var(--error-color); color: var(--error-color);" onclick="deleteLedger()">删除账本</button>
+            <div style="display: flex; gap: 8px;">
+                <button id="btn-export-json" class="secondary" style="width: auto; padding: 8px 16px;" onclick="exportData()">导出JSON</button>
+                <button id="btn-logout" class="secondary" style="width: auto; padding: 8px 16px;" onclick="logout()">退出登录</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 弹窗：新增/编辑账单 -->
+<div id="record-modal" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close" onclick="cancelEdit()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <h3 id="record-form-title" style="margin-bottom: 20px; margin-right: 28px;">新增账单</h3>
+        <input type="hidden" id="record-id-hidden" value="">
+        <input type="text" id="record-details" placeholder="备注（如：晚饭）">
+        <input type="number" id="record-price" placeholder="总金额" step="0.01">
+        <select id="record-payer">
+            <option value="">选择付款人员</option>
+        </select>
+        
+        <p id="label-repayers" style="font-size: 14px; margin-bottom: 8px;">参与分摊人员（包括自己）:</p>
+        <div class="checkbox-group" id="record-repayers">
+            <!-- 动态生成复选框 -->
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 16px; align-items: center;">
+            <button id="btn-get-location" type="button" class="secondary" onclick="getLocation()" style="width: auto; padding: 6px 12px; font-size: 12px;">获取定位</button>
+            <span id="location-display" style="font-size: 12px; color: var(--text-secondary);">未获取</span>
+            <input type="hidden" id="record-location" value="">
+        </div>
+        
+        <button onclick="saveRecord()" id="btn-save-record" style="margin-top: 12px;">记录账单</button>
+    </div>
+</div>
+
+<script>
+    const API_BASE = '/traculator/api';
+
+    // 语言配置
+    const i18n = {
+        zh: {
+            pageTitle: "Traculator - 极简记账服务",
+            loginTitle: "登录 / 注册",
+            loginDesc: "请输入6位数字码以访问账本",
+            loginPlaceholder: "输入6位数字码, 例: 123456",
+            loginBtn: "进入账本",
+            loginNote: "(如不存在该密码, 将自动创建新账本)",
+            toastCodeError: "请输入6位数字码",
+            toastNetworkError: "网络错误",
+            toastAddMemberFail: "添加失败",
+            toastSetMiddlemanOk: "设置成功",
+            toastSetMiddlemanFail: "设置失败",
+            toastDeleteOk: "账本已删除",
+            toastExportFail: "导出数据失败",
+            toastSaveOk: "记录成功",
+            toastEditOk: "修改成功",
+            toastSaveFail: "保存失败",
+            toastIncomplete: "请完整填写账单信息",
+            confirmDelete: "确定要永久删除此账本及所有相关数据吗？",
+            btnSettings: "设置",
+            recordsTitle: "账单明细",
+            searchPlaceholder: "搜索账单",
+            settlementTitle: "结算结果",
+            settlementHint: "",
+            settlementEmpty: "暂无结算数据，需先设置中间商及添加账单",
+            payTo: "支付给",
+            settingsTitle: "设置与管理",
+            labelAddMember: "添加成员",
+            placeholderMemberName: "成员姓名",
+            btnAdd: "添加",
+            labelSetMiddleman: "设置中间商",
+            currentLabel: "当前",
+            none: "无",
+            btnSet: "设置",
+            btnDeleteLedger: "删除账本",
+            btnExport: "导出JSON",
+            btnLogout: "退出登录",
+            addRecord: "新增账单",
+            editRecord: "编辑账单",
+            placeholderDetails: "备注（如：晚饭）",
+            placeholderPrice: "总金额",
+            selectPayer: "选择付款人员",
+            labelRepayers: "分摊人员（包括自己）:",
+            btnGetLocation: "获取定位",
+            locWaiting: "定位中...",
+            locParsing: "解析地址中...",
+            locUnsupported: "浏览器不支持定位",
+            locFailed: "定位失败",
+            locNotFetched: "未获取",
+            payerLabel: "付款人",
+            involvedLabel: "参与分摊",
+            btnEdit: "编辑",
+            btnSave: "记录账单",
+            btnSaveChange: "保存更改",
+            labelLang: "语言 / Language",
+            langToggleBtn: "English"
+        },
+        en: {
+            pageTitle: "Traculator - Minimalist Bookkeeping",
+            loginTitle: "Login / Register",
+            loginDesc: "Enter a 6-digit code to access the ledger",
+            loginPlaceholder: "Enter 6-digit code, e.g., 123456",
+            loginBtn: "Enter Ledger",
+            loginNote: "(If the password doesn't exist, a new ledger will be created)",
+            toastCodeError: "Please enter a 6-digit code",
+            toastNetworkError: "Network Error",
+            toastAddMemberFail: "Failed to add member",
+            toastSetMiddlemanOk: "Middleman set successfully",
+            toastSetMiddlemanFail: "Failed to set middleman",
+            toastDeleteOk: "Ledger deleted",
+            toastExportFail: "Failed to export data",
+            toastSaveOk: "Record saved",
+            toastEditOk: "Record updated",
+            toastSaveFail: "Failed to save record",
+            toastIncomplete: "Please complete all fields",
+            confirmDelete: "Are you sure you want to permanently delete this ledger and all data?",
+            btnSettings: "Settings",
+            recordsTitle: "Billing Details",
+            searchPlaceholder: "Search bills",
+            settlementTitle: "Settlement",
+            settlementHint: "",
+            settlementEmpty: "No data. Add a middleman and records first.",
+            payTo: "pays to",
+            settingsTitle: "Settings & Management",
+            labelAddMember: "Add Member",
+            placeholderMemberName: "Member Name",
+            btnAdd: "Add",
+            labelSetMiddleman: "Set Middleman",
+            currentLabel: "Current",
+            none: "None",
+            btnSet: "Set",
+            btnDeleteLedger: "Delete Ledger",
+            btnExport: "Export JSON",
+            btnLogout: "Logout",
+            addRecord: "New Record",
+            editRecord: "Edit Record",
+            placeholderDetails: "Details (e.g., Dinner)",
+            placeholderPrice: "Total Amount",
+            selectPayer: "Select Payer",
+            labelRepayers: "Participants (including self):",
+            btnGetLocation: "Get Location",
+            locWaiting: "Locating...",
+            locParsing: "Parsing Address...",
+            locUnsupported: "Location not supported",
+            locFailed: "Location failed",
+            locNotFetched: "Not Fetched",
+            payerLabel: "Payer",
+            involvedLabel: "Involved",
+            btnEdit: "Edit",
+            btnSave: "Save Record",
+            btnSaveChange: "Save Changes",
+            labelLang: "Language / 语言",
+            langToggleBtn: "中文"
+        }
+    };
+
+    let currentLang = localStorage.getItem('traculator_lang') || 'en';
+
+    function updatePageLang() {
+        const lang = i18n[currentLang];
+        document.title = lang.pageTitle;
+        document.getElementById('lang-select').value = currentLang;
+
+        // Toggle button text
+        const toggleBtn = document.getElementById('btn-lang-toggle');
+        if (toggleBtn) toggleBtn.textContent = lang.langToggleBtn;
+        
+        // Login section
+        document.getElementById('login-title').textContent = lang.loginTitle;
+        document.getElementById('login-desc').textContent = lang.loginDesc;
+        document.getElementById('code-input').placeholder = lang.loginPlaceholder;
+        document.getElementById('btn-login').textContent = lang.loginBtn;
+        document.getElementById('login-note').textContent = lang.loginNote;
+
+        // Show/hide login language switch based on login status
+        const loginSwitch = document.getElementById('login-lang-switch');
+        if (loginSwitch) {
+            loginSwitch.style.display = getCookie('traculator_code') ? 'none' : 'block';
+        }
+
+        // Main section
+        const btnSettings = document.getElementById('btn-settings');
+        if (btnSettings) {
+            btnSettings.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                ${lang.btnSettings}
+            `;
+        }
+        const recordsTitle = document.getElementById('records-title');
+        if (recordsTitle) recordsTitle.textContent = lang.recordsTitle;
+        const searchKeywordPlaceholder = document.getElementById('search-keyword');
+        if (searchKeywordPlaceholder) searchKeywordPlaceholder.placeholder = lang.searchPlaceholder;
+        const settlementTitle = document.getElementById('settlement-title');
+        if (settlementTitle) settlementTitle.textContent = lang.settlementTitle;
+        const settlementHint = document.getElementById('settlement-hint');
+        if (settlementHint) settlementHint.textContent = lang.settlementHint;
+
+        // Settings modal
+        const settingsModalTitle = document.getElementById('settings-title');
+        if (settingsModalTitle) settingsModalTitle.textContent = lang.settingsTitle;
+        const labelLangElem = document.getElementById('label-lang');
+        if (labelLangElem) labelLangElem.textContent = lang.labelLang;
+        const labelAddMemberElem = document.getElementById('label-add-member');
+        if (labelAddMemberElem) labelAddMemberElem.textContent = lang.labelAddMember;
+        const newMemberNamePlaceholder = document.getElementById('new-member-name');
+        if (newMemberNamePlaceholder) newMemberNamePlaceholder.placeholder = lang.placeholderMemberName;
+        const btnAddMemberText = document.getElementById('btn-add-member');
+        if (btnAddMemberText) btnAddMemberText.textContent = lang.btnAdd;
+        
+        const currentMidSpan = document.getElementById('current-middleman');
+        const currentMidValue = currentMidSpan ? currentMidSpan.innerText : lang.none;
+        const labelSetMidElem = document.getElementById('label-set-middleman');
+        if (labelSetMidElem) {
+            labelSetMidElem.innerHTML = `
+                ${lang.labelSetMiddleman} <span style="font-weight:normal; font-size:12px; color:var(--text-secondary);">(${lang.currentLabel}: <span id="current-middleman">${currentMidValue}</span>)</span>
+            `;
+        }
+        const btnSetMidText = document.getElementById('btn-set-middleman');
+        if (btnSetMidText) btnSetMidText.textContent = lang.btnSet;
+        const btnDelLedgerText = document.getElementById('btn-delete-ledger');
+        if (btnDelLedgerText) btnDelLedgerText.textContent = lang.btnDeleteLedger;
+        const btnExpJsonText = document.getElementById('btn-export-json');
+        if (btnExpJsonText) btnExpJsonText.textContent = lang.btnExport;
+        const btnLogoutText = document.getElementById('btn-logout');
+        if (btnLogoutText) btnLogoutText.textContent = lang.btnLogout;
+
+        // Record modal
+        const isEditingInModal = document.getElementById('record-id-hidden').value !== '';
+        const recFormTitle = document.getElementById('record-form-title');
+        if (recFormTitle) recFormTitle.textContent = isEditingInModal ? lang.editRecord : lang.addRecord;
+        const recDetailsPlaceholder = document.getElementById('record-details');
+        if (recDetailsPlaceholder) recDetailsPlaceholder.placeholder = lang.placeholderDetails;
+        const recPricePlaceholder = document.getElementById('record-price');
+        if (recPricePlaceholder) recPricePlaceholder.placeholder = lang.placeholderPrice;
+        const labelRepayersElem = document.getElementById('label-repayers');
+        if (labelRepayersElem) labelRepayersElem.textContent = lang.labelRepayers;
+        const btnGetLocText = document.getElementById('btn-get-location');
+        if (btnGetLocText) btnGetLocText.textContent = lang.btnGetLocation;
+        const btnSaveRecText = document.getElementById('btn-save-record');
+        if (btnSaveRecText) btnSaveRecText.textContent = isEditingInModal ? lang.btnSaveChange : lang.btnSave;
+        
+        const locDispElem = document.getElementById('location-display');
+        if (locDispElem) {
+            const locDispText = locDispElem.innerText;
+            if (locDispText === '未获取' || locDispText === 'Not Fetched') {
+                locDispElem.innerText = lang.locNotFetched;
+            }
+        }
+
+        // Refresh dynamic content
+        if (getCookie('traculator_code')) {
+            loadData();
+        }
+    }
+
+    function switchLanguage() {
+        currentLang = document.getElementById('lang-select').value;
+        localStorage.setItem('traculator_lang', currentLang);
+        updatePageLang();
+    }
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'en' ? 'zh' : 'en';
+        localStorage.setItem('traculator_lang', currentLang);
+        updatePageLang();
+    }
+
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.style.backgroundColor = isError ? 'var(--error-color)' : 'var(--text-main)';
+        toast.style.opacity = '1';
+        setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+    }
+    
+    function getCookie(name) {
+        let value = "; " + document.cookie;
+        let parts = value.split("; " + name + "=");
+        if (parts.length === 2) return parts.pop().split(";").shift();
+    }
+
+    async function login() {
+        const lang = i18n[currentLang];
+        const code = document.getElementById('code-input').value;
+        if (!/^\d{6}$/.test(code)) {
+            showToast(lang.toastCodeError, true);
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('main-section').classList.remove('hidden');
+                loadData();
+                showToast(data.message);
+            } else {
+                showToast(data.detail, true);
+            }
+        } catch (e) {
+            showToast(lang.toastNetworkError, true);
+        }
+    }
+
+    function logout() {
+        document.cookie = "traculator_code=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        document.getElementById('main-section').classList.add('hidden');
+        document.getElementById('login-section').classList.remove('hidden');
+        document.getElementById('code-input').value = '';
+        closeSettingsModal();
+    }
+
+    async function addMember() {
+        const lang = i18n[currentLang];
+        const nameInput = document.getElementById('new-member-name');
+        const name = nameInput.value.trim();
+        if (!name) return;
+        
+        try {
+            const res = await fetch(`${API_BASE}/members`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (res.ok) {
+                nameInput.value = '';
+                loadData();
+            } else {
+                const data = await res.json();
+                showToast(data.detail, true);
+            }
+        } catch (e) {
+            showToast(lang.toastAddMemberFail, true);
+        }
+    }
+
+    async function setMiddleman() {
+        const lang = i18n[currentLang];
+        const name = document.getElementById('middleman-select').value;
+        if (!name) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/middleman`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (res.ok) {
+                loadData();
+                showToast(lang.toastSetMiddlemanOk);
+            }
+        } catch (e) {
+            showToast(lang.toastSetMiddlemanFail, true);
+        }
+    }
+
+    async function deleteLedger() {
+        const lang = i18n[currentLang];
+        if (!confirm(lang.confirmDelete)) return;
+        try {
+            const res = await fetch(`${API_BASE}/group`, { method: 'DELETE' });
+            if (res.ok) {
+                showToast(lang.toastDeleteOk);
+                logout();
+                closeSettingsModal();
+            }
+        } catch(e) {}
+    }
+
+    async function exportData() {
+        const lang = i18n[currentLang];
+        try {
+            const res = await fetch(`${API_BASE}/data`);
+            if (!res.ok) throw new Error('Failed to fetch data');
+            const data = await res.json();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `traculator_data_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        } catch(e) {
+            showToast(lang.toastExportFail, true);
+        }
+    }
+
+    let globalDataRecord = []; // 存储加载的数据以便用于编辑
+
+    function openSettingsModal() {
+        document.getElementById('settings-modal').classList.add('active');
+        document.body.classList.add('no-scroll');
+    }
+
+    function closeSettingsModal() {
+        document.getElementById('settings-modal').classList.remove('active');
+        document.body.classList.remove('no-scroll');
+    }
+
+    function openRecordModal() {
+        document.getElementById('record-modal').classList.add('active');
+        document.body.classList.add('no-scroll');
+    }
+
+    function closeRecordModal() {
+        document.getElementById('record-modal').classList.remove('active');
+        document.body.classList.remove('no-scroll');
+    }
+
+    function getLocation() {
+        const lang = i18n[currentLang];
+        const display = document.getElementById('location-display');
+        const input = document.getElementById('record-location');
+        
+        if (!navigator.geolocation) {
+            display.textContent = lang.locUnsupported;
+            return;
+        }
+
+        display.textContent = lang.locWaiting;
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                display.textContent = lang.locParsing;
+                // 提前保存经纬度，防止用户在解析完成前直接点击提交
+                input.value = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+                
+                try {
+                    // 使用 BigDataCloud 免费客户端地理编码API (无需密钥，且国内访问较稳定)
+                    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=${currentLang}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const prov = data.principalSubdivision || '';
+                        const city = data.city || '';
+                        const loc = data.locality || '';
+                        
+                        let addressParts = [];
+                        if (prov) addressParts.push(prov);
+                        if (city && city !== prov) addressParts.push(city);
+                        if (loc) addressParts.push(loc);
+                        
+                        let addressStr = addressParts.join(' ');
+                        const latLngStr = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+                        
+                        if (addressStr) {
+                            display.textContent = addressStr;
+                            // 同时保存具体的街道地址和原始经纬度坐标
+                            input.value = `${addressStr} (${latLngStr})`;
+                        } else {
+                            display.textContent = latLngStr;
+                            input.value = latLngStr;
+                        }
+                    } else {
+                        throw new Error("HTTP error");
+                    }
+                } catch (e) {
+                    // 如果解析失败则回退到经纬度
+                    const latFixed = lat.toFixed(4);
+                    const lngFixed = lng.toFixed(4);
+                    const locStr = `Lat: ${latFixed}, Lng: ${lngFixed}`;
+                    display.textContent = locStr;
+                    input.value = locStr;
+                }
+            },
+            (error) => {
+                display.textContent = i18n[currentLang].locFailed;
+                showToast(i18n[currentLang].locFailed + ': ' + error.message, true);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        );
+    }
+
+    async function saveRecord() {
+        const lang = i18n[currentLang];
+        const idHidden = document.getElementById('record-id-hidden').value;
+        const details = document.getElementById('record-details').value;
+        const price = parseFloat(document.getElementById('record-price').value);
+        const payer = document.getElementById('record-payer').value;
+        const location = document.getElementById('record-location').value;
+        
+        const checkboxes = document.querySelectorAll('#record-repayers input[type="checkbox"]:checked');
+        const repayers = Array.from(checkboxes).map(cb => cb.value);
+
+        if (!details || isNaN(price) || !payer || repayers.length === 0) {
+            showToast(lang.toastIncomplete, true);
+            return;
+        }
+
+        try {
+            let res;
+            if (idHidden) {
+                // 编辑
+                res = await fetch(`${API_BASE}/records/${idHidden}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ details, price, payer, repayers, location: location || undefined })
+                });
+            } else {
+                // 新增
+                res = await fetch(`${API_BASE}/records`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ details, price, payer, repayers, location: location || undefined })
+                });
+            }
+            
+            if (res.ok) {
+                cancelEdit();
+                loadData();
+                showToast(idHidden ? lang.toastEditOk : lang.toastSaveOk);
+            }
+        } catch (e) {
+            showToast(lang.toastSaveFail, true);
+        }
+    }
+
+    function editRecord(id) {
+        const lang = i18n[currentLang];
+        const record = globalDataRecord.find(r => r.id === id);
+        if (!record) return;
+
+        document.getElementById('record-id-hidden').value = record.id;
+        document.getElementById('record-details').value = record.details;
+        document.getElementById('record-price').value = record.price;
+        document.getElementById('record-form-title').innerText = lang.editRecord;
+        
+        const locMap = record.location || "";
+        document.getElementById('record-location').value = locMap;
+        document.getElementById('location-display').textContent = locMap || lang.locNotFetched;
+        
+        document.getElementById('btn-save-record').innerText = lang.btnSaveChange;
+
+        // 设置下拉框和复选框状态
+        const payerSelect = document.getElementById('record-payer');
+        if (Array.from(payerSelect.options).some(opt => opt.value === record.payer)) {
+            payerSelect.value = record.payer;
+        }
+
+        const checkboxes = document.querySelectorAll('#record-repayers input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.checked = record.repayers.includes(cb.value);
+        });
+
+        // 打开弹窗
+        openRecordModal();
+    }
+
+    function cancelEdit() {
+        const lang = i18n[currentLang];
+        document.getElementById('record-id-hidden').value = '';
+        document.getElementById('record-details').value = '';
+        document.getElementById('record-price').value = '';
+        document.getElementById('record-form-title').innerText = lang.addRecord;
+        document.getElementById('record-location').value = '';
+        document.getElementById('location-display').textContent = lang.locNotFetched;
+        
+        document.getElementById('btn-save-record').innerText = lang.btnSave;
+        
+        const checkboxes = document.querySelectorAll('#record-repayers input[type="checkbox"]');
+        checkboxes.forEach(cb => { cb.checked = true; }); // 重置为大家均摊
+
+        closeRecordModal();
+    }
+
+    async function loadData() {
+        const lang = i18n[currentLang];
+        try {
+            const res = await fetch(`${API_BASE}/data`);
+            if (res.status === 401) {
+                logout();
+                return;
+            }
+            const { data, settlement } = await res.json();
+            
+            // 渲染成员
+            const membersList = document.getElementById('members-list');
+            membersList.innerHTML = '';
+            
+            const middlemanSelect = document.getElementById('middleman-select');
+            const payerSelect = document.getElementById('record-payer');
+            const repayersGroup = document.getElementById('record-repayers');
+            
+            middlemanSelect.innerHTML = `<option value="">${currentLang === 'zh' ? '请选择' : 'Please select'}</option>`;
+            payerSelect.innerHTML = `<option value="">${lang.selectPayer}</option>`;
+            repayersGroup.innerHTML = '';
+
+            document.getElementById('current-middleman').textContent = data.middleman || lang.none;
+            
+            document.getElementById('settlement-middleman-name').textContent = data.middleman ? `(${data.middleman})` : '';
+
+            data.members.forEach(m => {
+                membersList.innerHTML += `<span class="badge">${m}</span>`;
+                middlemanSelect.innerHTML += `<option value="${m}">${m}</option>`;
+                payerSelect.innerHTML += `<option value="${m}">${m}</option>`;
+                
+                repayersGroup.innerHTML += `
+                    <label class="checkbox-label">
+                        <input type="checkbox" value="${m}" checked> ${m}
+                    </label>
+                `;
+            });
+
+            // 渲染结算金额 (相对于中间人)
+            const settlementBody = document.getElementById('settlement-body');
+            settlementBody.innerHTML = '';
+            if (settlement.final && Object.keys(settlement.final).length > 0) {
+                for (const [person, amount] of Object.entries(settlement.final)) {
+                    if (Math.abs(amount) > 0.01) {
+                        const isPayOut = amount > 0;
+                        const fromPerson = isPayOut ? data.middleman : person;
+                        const toPerson = isPayOut ? person : data.middleman;
+                        const actionColor = isPayOut ? 'var(--error-color)' : 'var(--accent-color)';
+                        const bgColor = isPayOut ? '#fff5f5' : '#f0fff4';
+                        const borderColor = isPayOut ? '#feb2b2' : '#9ae6b4';
+
+                        settlementBody.innerHTML += `
+                            <div class="settlement-item">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="settlement-name">${fromPerson}</span>
+                                    <span style="font-size: 12px; color: ${actionColor}; background: ${bgColor}; padding: 2px 8px; border-radius: 12px; border: 1px solid ${borderColor};">${lang.payTo}</span>
+                                    <span class="settlement-name">${toPerson}</span>
+                                </div>
+                                <span class="settlement-amount" style="color: ${actionColor}; font-weight: 700;">
+                                    ¥${Math.abs(amount).toFixed(2)}
+                                </span>
+                            </div>
+                        `;
+                    }
+                }
+            } else {
+                settlementBody.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 16px;">${lang.settlementEmpty}</div>`;
+            }
+
+            // 渲染明细
+            globalDataRecord = data.records; // 保存全局变量
+            renderRecords();
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function renderRecords() {
+        const lang = i18n[currentLang];
+        const recordsBody = document.getElementById('records-body');
+        const timelineSidebar = document.getElementById('timeline-sidebar');
+        const keyword = document.getElementById('search-keyword').value.trim().toLowerCase();
+        
+        recordsBody.innerHTML = '';
+        timelineSidebar.innerHTML = '';
+
+        let filteredRecords = globalDataRecord;
+        if (keyword) {
+            filteredRecords = globalDataRecord.filter(r => r.details.toLowerCase().includes(keyword) || r.payer.toLowerCase().includes(keyword));
+        }
+        
+        const sortedRecords = [...filteredRecords].reverse();
+        
+        let currentDateStr = '';
+        sortedRecords.forEach(r => {
+            // 解析出日期，提供锚点
+            let dayLevel = r.timestamp ? r.timestamp.split(' ')[0] : (currentLang === 'zh' ? '未知' : 'Unknown');
+            // 显示月份/日
+            let shortDate = 'N/A';
+            if (dayLevel !== (currentLang === 'zh' ? '未知' : 'Unknown')) {
+                const parts = dayLevel.split('-');
+                if (parts.length === 3) shortDate = `${parts[1]}/${parts[2]}`;
+            }
+
+            if (dayLevel !== currentDateStr) {
+                // 生成时间侧边栏标记
+                currentDateStr = dayLevel;
+                const safeDateId = `date-${dayLevel.replace(/-/g, '')}`;
+                
+                timelineSidebar.innerHTML += `
+                    <div id="sidebar-${safeDateId}" class="sidebar-date-item" style="font-size: 10px; color: var(--text-secondary); margin-bottom: 12px; cursor: pointer; user-select: none; transition: all 0.2s;" onclick="document.getElementById('${safeDateId}').scrollIntoView({behavior: 'smooth'})">
+                        <div class="sidebar-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--border-color); margin: 0 auto 4px; transition: all 0.2s;"></div>
+                        ${shortDate}
+                    </div>
+                `;
+                
+                // 给具体账单插入锚点
+                recordsBody.innerHTML += `<div id="${safeDateId}" class="date-anchor" data-date-id="sidebar-${safeDateId}" style="height: 1px; visibility: hidden; margin-top: -100px; padding-bottom: 100px;"></div>`;
+                recordsBody.innerHTML += `<div style="font-weight: 500; color: var(--text-secondary); font-size: 13px; margin: 4px 0;">${dayLevel}</div>`;
+            }
+
+            const repayersHtml = r.repayers.map(rep => `<span class="rc-tag">${rep}</span>`).join('');
+            const locHtml = r.location ? `<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">📍 ${r.location}</div>` : '';
+            recordsBody.innerHTML += `
+                <div class="record-card" style="padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface-color); margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <div style="font-size: 16px; font-weight: 600; color: var(--text-main);">${r.details}</div>
+                        <div style="font-size: 18px; font-weight: 700; color: var(--accent-color);">¥${Math.abs(r.price).toFixed(2)}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">
+                        <span>${lang.payerLabel}: <strong style="color: var(--text-main); font-weight: 500;">${r.payer}</strong></span>
+                    </div>
+                    ${locHtml}
+                    <div style="margin-bottom: 14px;">
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">${lang.involvedLabel}:</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                            ${repayersHtml}
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                        <div style="font-size: 12px; color: #a0aec0;">${r.timestamp || '-'}</div>
+                        <button class="secondary" style="width: auto; padding: 4px 12px; font-size:12px; border-radius: 4px; margin: 0;" onclick="editRecord('${r.id}')">${lang.btnEdit}</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        // 初始触发一次高亮
+        highlightSidebarDate();
+    }
+
+    function highlightSidebarDate() {
+        const anchors = Array.from(document.querySelectorAll('.date-anchor'));
+        if (!anchors.length) return;
+        
+        let activeAnchor = anchors[0];
+        const offset = 180; // 考虑顶部 header 和 search bar 的高度，大概 180px
+        
+        for (let i = 0; i < anchors.length; i++) {
+            const rect = anchors[i].getBoundingClientRect();
+            if (rect.top <= offset) {
+                activeAnchor = anchors[i];
+            } else {
+                break;
+            }
+        }
+        
+        const sidebarId = activeAnchor.getAttribute('data-date-id');
+        
+        document.querySelectorAll('.sidebar-date-item').forEach(item => {
+            item.style.color = 'var(--text-secondary)';
+            item.style.fontWeight = 'normal';
+            const dot = item.querySelector('.sidebar-dot');
+            if (dot) {
+                dot.style.background = 'var(--border-color)';
+                dot.style.transform = 'scale(1)';
+            }
+        });
+        
+        const activeItem = document.getElementById(sidebarId);
+        if (activeItem) {
+            activeItem.style.color = 'var(--accent-color)';
+            activeItem.style.fontWeight = 'bold';
+            const dot = activeItem.querySelector('.sidebar-dot');
+            if (dot) {
+                dot.style.background = 'var(--accent-color)';
+                dot.style.transform = 'scale(1.5)';
+            }
+            
+            // 确保高亮项在侧边栏中可见
+            const sidebar = document.getElementById('timeline-sidebar');
+            const itemRect = activeItem.getBoundingClientRect();
+            const sidebarRect = sidebar.getBoundingClientRect();
+            if (itemRect.top < sidebarRect.top || itemRect.bottom > sidebarRect.bottom) {
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+    }
+
+    // 监听滚动事件以高亮对应日期
+    window.addEventListener('scroll', highlightSidebarDate);
+
+    // 初始化检查
+    updatePageLang(); // 初始更新语言
+    if (getCookie('traculator_code')) {
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('main-section').classList.remove('hidden');
+        loadData();
+    }
+</script>
+
+</body>
+</html>
